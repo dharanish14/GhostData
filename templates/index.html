@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GhostData — Privacy Risk Analyzer for Digital Files</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-brand">
+                <div class="brand-icon">🛡️</div>
+                <div class="brand-text">
+                    <h1>GhostData</h1>
+                    <p class="tagline">Privacy Risk Analyzer & Verified Metadata Sanitizer</p>
+                </div>
+            </div>
+            <div class="header-badges">
+                <span class="badge badge-secure">🔒 100% Local Processing</span>
+                <span class="badge badge-format">JPEG & PDF Supported</span>
+            </div>
+        </header>
+
+        <!-- Privacy & Limitation Notice -->
+        <div class="notice-banner">
+            <div class="notice-icon">ℹ️</div>
+            <div class="notice-content">
+                <strong>Privacy Notice & Scope:</strong>
+                Files are analyzed and sanitized strictly on this local machine. No external APIs or cloud services are contacted.
+                <em>Note:</em> Removing metadata strips hidden file headers, but cannot redact personal information that is already visible inside the image pixels or document text.
+            </div>
+        </div>
+
+        <!-- Main Upload Section -->
+        <main class="main-content">
+            <section class="card upload-card" id="uploadSection">
+                <div class="card-header">
+                    <h2>1. Select or Drop a File</h2>
+                    <span class="subtext">Max upload size: 10 MB. Supported formats: .jpg, .jpeg, .pdf</span>
+                </div>
+
+                <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="File upload dropzone">
+                    <div class="drop-icon">📁</div>
+                    <h3>Drag & drop your JPEG or PDF here</h3>
+                    <p>or click to browse from your computer</p>
+                    <input type="file" id="fileInput" accept=".jpg,.jpeg,.pdf,image/jpeg,application/pdf" hidden>
+                    <button type="button" class="btn btn-secondary" id="browseBtn">Browse Files</button>
+                </div>
+
+                <!-- Live Progress and Validation Feedback -->
+                <div class="status-box hidden" id="statusBox" aria-live="polite">
+                    <div class="spinner"></div>
+                    <div class="status-text-group">
+                        <div class="status-title" id="statusTitle">Validating File Signature...</div>
+                        <div class="status-detail" id="statusDetail">Verifying magic bytes (FF D8 FF / %PDF-) and parsing internal structures...</div>
+                    </div>
+                </div>
+
+                <!-- Error Display -->
+                <div class="error-box hidden" id="errorBox" role="alert">
+                    <span class="error-icon">⚠️</span>
+                    <span id="errorMessage"></span>
+                </div>
+            </section>
+
+            <!-- Analysis Results Section (Populated dynamically) -->
+            <section class="card results-card hidden" id="resultsSection">
+                <div class="results-top-bar">
+                    <div class="file-summary-pill">
+                        <span id="resFileType" class="pill-format">JPEG</span>
+                        <strong id="resFileName">example.jpg</strong>
+                        <span id="resFileSize" class="pill-size">1.2 MB</span>
+                        <span id="resFileExtra" class="pill-extra">1920x1080</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline" id="newFileBtn">Analyze Another File</button>
+                </div>
+
+                <!-- Overall Risk Banner -->
+                <div class="risk-summary-banner" id="riskBanner">
+                    <div class="risk-badge" id="riskLevelBadge">HIGH RISK</div>
+                    <div class="risk-desc-box">
+                        <h3 id="riskSummaryHeadline">High Privacy Exposure Detected</h3>
+                        <p id="riskSummaryDetails">Contains exact GPS location coordinates and author identity markers.</p>
+                    </div>
+                    <div class="severity-counter-group" id="severityCounters">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Privacy Findings Table -->
+                <div class="findings-section">
+                    <div class="section-title-row">
+                        <h3>Detailed Privacy Findings</h3>
+                        <span class="subtext" id="findingsCountText">Found 4 metadata items</span>
+                    </div>
+
+                    <div class="findings-grid" id="findingsGrid">
+                        <!-- Cards injected by JS -->
+                    </div>
+                </div>
+
+                <!-- Action Bar: Clean & Sanitize -->
+                <div class="clean-action-panel">
+                    <div class="clean-info">
+                        <h4>Create Verified Sanitized Copy</h4>
+                        <p>GhostData creates an isolated clean copy without modifying your original file. Visual orientation and document structure are preserved.</p>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-large" id="cleanBtn">
+                        ✨ Clean Metadata & Verify
+                    </button>
+                </div>
+
+                <!-- Verification Report Section -->
+                <div class="verification-panel hidden" id="verificationPanel">
+                    <div class="verification-header" id="verificationHeader">
+                        <div class="verification-status-icon" id="verifStatusIcon">✅</div>
+                        <div>
+                            <h3 id="verifTitle">Post-Cleaning Verification Report</h3>
+                            <p id="verifSubtitle">Second-pass re-extraction completed. Structural validity confirmed.</p>
+                        </div>
+                    </div>
+
+                    <div class="verification-grid">
+                        <div class="verif-card" id="validityCard">
+                            <h4>File Integrity Check</h4>
+                            <div class="validity-indicator" id="validityIndicator">
+                                <span class="validity-dot dot-success"></span>
+                                <span id="validityText">Valid output file generated</span>
+                            </div>
+                            <small id="validitySubtext">Parser confirmed no corruption</small>
+                        </div>
+
+                        <div class="verif-card" id="diffCard">
+                            <h4>Sanitization Audit</h4>
+                            <ul class="diff-list" id="diffList">
+                                <!-- Populated by JS -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="unverified-card hidden" id="unverifiedCard">
+                        <h4>⚠️ Unverified / Preserved Structures</h4>
+                        <p>The following elements were preserved to prevent document layout damage and cannot be safely verified as clean:</p>
+                        <ul id="unverifiedList"></ul>
+                    </div>
+
+                    <div class="verification-actions">
+                        <a href="#" class="btn btn-success btn-large" id="downloadBtn" download>
+                            ⬇️ Download Cleaned File
+                        </a>
+                        <a href="#" class="btn btn-outline" id="reportBtn" target="_blank">
+                            📄 View Printable Audit Report
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p><strong>GhostData</strong> — An evidence-based privacy risk analyzer and verified metadata sanitizer.</p>
+            <p class="footer-note">Built for local-first privacy security. No telemetry. Open-source design.</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

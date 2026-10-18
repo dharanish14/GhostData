@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GhostData Audit Report — {{ record.original_filename }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body { background: #f8fafc; color: #0f172a; padding: 2rem; }
+        .report-page { max-width: 900px; margin: 0 auto; background: #ffffff; padding: 2.5rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .print-btn-bar { display: flex; justify-content: flex-end; margin-bottom: 1.5rem; gap: 1rem; }
+        @media print {
+            body { padding: 0; background: #fff; }
+            .report-page { box-shadow: none; padding: 0; }
+            .print-btn-bar, .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-page">
+        <div class="print-btn-bar no-print">
+            <button class="btn btn-secondary" onclick="window.print()">🖨️ Print / Save as PDF</button>
+            <a href="/" class="btn btn-outline">Back to Dashboard</a>
+        </div>
+
+        <header style="border-bottom: 2px solid #e2e8f0; padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+            <h2>🛡️ GhostData Privacy Audit & Verification Report</h2>
+            <p style="color: #64748b; margin-top: 0.25rem;">
+                Evidence-based digital metadata analysis and sanitization verification.
+            </p>
+        </header>
+
+        <section style="margin-bottom: 2rem;">
+            <h3>Target File Details</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 0.5rem;">
+                <tr><td style="padding: 6px 0; color: #64748b; width: 200px;">Original Filename:</td><td><strong>{{ record.original_filename }}</strong></td></tr>
+                <tr><td style="padding: 6px 0; color: #64748b;">Format & Size:</td><td>{{ record.file_type }} ({{ (record.file_size / 1024)|round(1) }} KB)</td></tr>
+                <tr><td style="padding: 6px 0; color: #64748b;">Initial Overall Risk:</td><td><strong>{{ record.risk.overall_risk }}</strong></td></tr>
+            </table>
+        </section>
+
+        <section style="margin-bottom: 2rem;">
+            <h3>Original Privacy Findings (Pre-Cleaning)</h3>
+            {% if record.risk.findings %}
+            <table style="width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background: #f1f5f9; text-align: left;">
+                        <th style="padding: 8px;">Severity</th>
+                        <th style="padding: 8px;">Field</th>
+                        <th style="padding: 8px;">Extracted Value</th>
+                        <th style="padding: 8px;">Privacy Concern</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in record.risk.findings %}
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 8px;"><span class="badge badge-{{ f.severity|lower }}">{{ f.severity }}</span></td>
+                        <td style="padding: 8px;"><strong>{{ f.field }}</strong></td>
+                        <td style="padding: 8px; font-family: monospace;">{{ f.masked_value }}</td>
+                        <td style="padding: 8px; color: #334155;">{{ f.privacy_concern }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="color: #16a34a;">No sensitive metadata fields detected in the original file.</p>
+            {% endif %}
+        </section>
+
+        {% if record.verification %}
+        <section style="margin-bottom: 2rem; background: #f8fafc; padding: 1.5rem; border-radius: 6px; border: 1px solid #e2e8f0;">
+            <h3>Verification & Sanitization Audit</h3>
+            <p><strong>Verdict:</strong> {{ record.verification.verdict_summary }}</p>
+            <p><strong>Structural Integrity:</strong> {{ record.verification.validity_check.details }}</p>
+
+            <h4 style="margin-top: 1rem;">Sanitized Items</h4>
+            <ul>
+                {% for r in record.verification.removed_fields %}
+                <li style="color: #16a34a; margin-bottom: 4px;">✅ <strong>{{ r.field }}</strong>: Removed ({{ r.evidence }})</li>
+                {% endfor %}
+                {% if not record.verification.removed_fields %}
+                <li>No fields were required to be removed.</li>
+                {% endif %}
+            </ul>
+
+            {% if record.verification.unverified_fields %}
+            <h4 style="margin-top: 1rem; color: #d97706;">Preserved / Unverified Structural Items</h4>
+            <ul>
+                {% for u in record.verification.unverified_fields %}
+                <li style="color: #b45309; margin-bottom: 4px;">⚠️ <strong>{{ u.structure }}</strong>: {{ u.reason }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </section>
+        {% endif %}
+
+        <footer style="margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #cbd5e1; font-size: 0.8rem; color: #64748b;">
+            <p><strong>Notice:</strong> This report verifies header and metadata sanitization conducted locally by GhostData. Metadata cleaning strips hidden container properties but cannot redact user-visible content, embedded screenshots, or text printed on document pages.</p>
+        </footer>
+    </div>
+</body>
+</html>
